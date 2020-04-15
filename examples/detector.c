@@ -792,6 +792,7 @@ void run_detector(int argc, char **argv)
     float thresh = find_float_arg(argc, argv, "-thresh", .5);
     float hier_thresh = find_float_arg(argc, argv, "-hier", .5);
     int cam_index = find_int_arg(argc, argv, "-c", 0);
+    int opencv_buffer_size = find_int_arg(argc, argv, "-buffer_size", 4);
     int frame_skip = find_int_arg(argc, argv, "-s", 0);
     int avg = find_int_arg(argc, argv, "-avg", 3);
     if(argc < 4){
@@ -843,7 +844,7 @@ void run_detector(int argc, char **argv)
         int classes = option_find_int(options, "classes", 20);
         char *name_list = option_find_str(options, "names", "data/names.list");
         char **names = get_labels(name_list);
-        demo(cfg, weights, thresh, cam_index, filename, names, classes, frame_skip, prefix, avg, hier_thresh, width, height, fps, fullscreen);
+        demo(cfg, weights, thresh, cam_index, filename, names, classes, frame_skip, prefix, avg, hier_thresh, width, height, fps, fullscreen, opencv_buffer_size);
     }
     //else if(0==strcmp(argv[2], "extract")) extract_detector(datacfg, cfg, weights, cam_index, filename, class, thresh, frame_skip);
     //else if(0==strcmp(argv[2], "censor")) censor_detector(datacfg, cfg, weights, cam_index, filename, class, thresh, frame_skip);

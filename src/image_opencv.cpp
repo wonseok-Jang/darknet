@@ -78,11 +78,11 @@ void *open_video_stream(const char *f, int c, int w, int h, int fps)
     return (void *) cap;
 }
 
-void *open_video_stream_cam_fps(const char *f, int c, int w, int h, int fps,float *camera_fps)
+void *open_video_stream_cam_fps(const char *f, int c, int w, int h, int fps,float *camera_fps, int opencv_buffer_size)
 {
     VideoCapture *cap;
     if(f) cap = new VideoCapture(f);
-    else cap = new VideoCapture(c);
+    else cap = new VideoCapture(c, opencv_buffer_size);
     if(!cap->isOpened()) return 0;
     if(w) cap->set(CV_CAP_PROP_FRAME_WIDTH, w);
     if(h) cap->set(CV_CAP_PROP_FRAME_HEIGHT, w);

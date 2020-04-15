@@ -309,6 +309,7 @@ void run_yolo(int argc, char **argv)
     char *prefix = find_char_arg(argc, argv, "-prefix", 0);
     float thresh = find_float_arg(argc, argv, "-thresh", .2);
     int cam_index = find_int_arg(argc, argv, "-c", 0);
+    int opencv_buffer_size = find_int_arg(argc, argv, "-buffer_size", 4);
     int frame_skip = find_int_arg(argc, argv, "-s", 0);
     if(argc < 4){
         fprintf(stderr, "usage: %s %s [train/test/valid] [cfg] [weights (optional)]\n", argv[0], argv[1]);
@@ -323,5 +324,5 @@ void run_yolo(int argc, char **argv)
     else if(0==strcmp(argv[2], "train")) train_yolo(cfg, weights);
     else if(0==strcmp(argv[2], "valid")) validate_yolo(cfg, weights);
     else if(0==strcmp(argv[2], "recall")) validate_yolo_recall(cfg, weights);
-    else if(0==strcmp(argv[2], "demo")) demo(cfg, weights, thresh, cam_index, filename, voc_names, 20, frame_skip, prefix, avg, .5, 0,0,0,0);
+    else if(0==strcmp(argv[2], "demo")) demo(cfg, weights, thresh, cam_index, filename, voc_names, 20, frame_skip, prefix, avg, .5, 0,0,0,0, opencv_buffer_size);
 }

@@ -15,9 +15,9 @@
 
 #ifdef OPENCV
 
-#define iteration 100
+#define iteration 1000
 #define start_log 25
-#define cycle 3
+#define cycle 1
 
 static char **demo_names;
 static image **demo_alphabet;
@@ -175,7 +175,8 @@ void *fetch_in_thread(void *ptr)
 
 void *display_in_thread(void *ptr)
 {
-    int c = show_image(buff[(buff_index + 2)%3], "Demo", 1);
+	double display_start = gettimeafterboot();
+    int c = show_image(buff[(buff_index + 1)%3], "Demo", 1);
     if (c != -1) c = c%256;
     if (c == 27) {
         demo_done = 1;
@@ -193,10 +194,10 @@ void *display_in_thread(void *ptr)
     }
 
 	double now_time=gettimeafterboot();
-	display_time=now_time-detect_end;
+	display_time=now_time-detect_start;
 	if(count>=start_log){
 		fps_array[count-start_log]=fps;
-   		latency[count-start_log]=now_time-frame_timestamp[(buff_index+2)%3];
+   		latency[count-start_log]=now_time-frame_timestamp[(buff_index+1)%3];
 		display_array[count-start_log]=display_time;
 //		printf("latency[%d]: %f\n",count-start_log,latency[count-start_log]);
 		printf("count : %d\n",count);
@@ -218,7 +219,7 @@ void *detect_loop(void *ptr)
     }
 }
 
-void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const char *filename, char **names, int classes, int delay, char *prefix, int avg_frames, float hier, int w, int h, int frames, int fullscreen)
+void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const char *filename, char **names, int classes, int delay, char *prefix, int avg_frames, float hier, int w, int h, int frames, int fullscreen, int opencv_buffer_size)
 {
     //demo_frame = avg_frames;
     image **alphabet = load_alphabet();
@@ -247,7 +248,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
         printf("video file: %s\n", filename);
         cap = open_video_stream(filename, 0, 0, 0, 0);
     }else{
-        cap = open_video_stream_cam_fps(0, cam_index, w, h, frames, ptr_camera_fps);
+        cap = open_video_stream_cam_fps(0, cam_index, w, h, frames, ptr_camera_fps, opencv_buffer_size);
 		printf("camera fps : %f\n",camera_fps);
     }
 
@@ -281,11 +282,14 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
 
 	for(int iter=0;iter<cycle;iter++){
 	    while(!demo_done){
+	    	buff_index = (buff_index + 1) %3;
+
 	        if(pthread_create(&fetch_thread, 0, fetch_in_thread, 0)) error("Thread creation failed");
+	        if(pthread_create(&detect_thread, 0, detect_in_thread, 0)) error("Thread creation failed");
 	        if(!prefix){
 				fps=1./(gettimeafterboot()-demo_time)*1000;
 				demo_time=gettimeafterboot();
-				detect_in_thread(0);
+				//detect_in_thread(0);
 				display_in_thread(0);
 	
 	        }else{
@@ -294,8 +298,10 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
 	            save_image(buff[(buff_index + 2)%3], name);
 	        }
 	        pthread_join(fetch_thread, 0);
+	        pthread_join(detect_thread, 0);
 			if(count>=start_log)
-				slack[count-start_log]=(detect_time+display_time)-(sleep_time+fetch_time);
+				//slack[count-start_log]=(detect_time+display_time)-(sleep_time+fetch_time);
+				slack[count-start_log]=(detect_time)-(sleep_time+fetch_time);
 			if(count==(iteration+start_log-1)){
 				FILE *fp;
 				char s1[35]="auto_calib/offset_";
@@ -324,7 +330,6 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
 				break;
 			}
 			count++;
-	    	buff_index = (buff_index + 1) %3;
 	    }
 		count=0;
 	}
