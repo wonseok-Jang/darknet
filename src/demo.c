@@ -51,6 +51,7 @@ static double latency[iteration];
 
 static int count=0;
 
+int process_number;
 float camera_fps=0;
 float *ptr_camera_fps=&camera_fps;
 long int frame_number[3];
@@ -219,7 +220,7 @@ void *detect_loop(void *ptr)
     }
 }
 
-void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const char *filename, char **names, int classes, int delay, char *prefix, int avg_frames, float hier, int w, int h, int frames, int fullscreen, int opencv_buffer_size, int offset)
+void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const char *filename, char **names, int classes, int delay, char *prefix, int avg_frames, float hier, int w, int h, int frames, int fullscreen, int opencv_buffer_size, int offset, int process_num)
 {
     //demo_frame = avg_frames;
     image **alphabet = load_alphabet();
@@ -305,7 +306,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
 				FILE *fp;
 				char s1[35]="auto_calib/offset_";
 				char s2[4];
-				sprintf(s2,"%d",sleep_time);
+				sprintf(s2,"%d",process_num);
 				char s3[5]=".csv";
 				strcat(s1,s2);
 				strcat(s1,s3);
