@@ -15,7 +15,7 @@
 
 #ifdef OPENCV
 
-#define iteration 1000
+#define iteration 100
 #define start_log 25
 #define cycle 1
 
