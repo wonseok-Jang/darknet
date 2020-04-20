@@ -15,55 +15,28 @@
 
 #ifdef OPENCV
 
-#define iteration 1000
-#define start_log 25
-#define cycle 1
+extern int buff_index = 0;
+extern float fps = 0;
+extern float demo_thresh = 0;
+extern float demo_hier = .5;
+extern int running = 0;
+extern int demo_frame = 3;
+extern int demo_index = 0;
+extern int demo_done = 0;
+extern int demo_total = 0;
+extern float camera_fps=0;
+extern float *ptr_camera_fps=&camera_fps;
 
-static char **demo_names;
-static image **demo_alphabet;
-static int demo_classes;
+extern double image_waiting_sum[cycle]={0};
+extern double fetch_sum[cycle]={0};
+extern double detect_sum[cycle]={0};
+extern double display_sum[cycle]={0};
+extern double slack_sum[cycle]={0};
+extern double fps_sum[cycle]={0};
+extern double latency_sum[cycle]={0};
 
-static network *net;
-static image buff [3];
-static image buff_letter[3];
-static int buff_index = 0;
-static void * cap;
-static float fps = 0;
-static float demo_thresh = 0;
-static float demo_hier = .5;
-static int running = 0;
-
-static int demo_frame = 3;
-static int demo_index = 0;
-static float **predictions;
-static float *avg;
-static int demo_done = 0;
-static int demo_total = 0;
-double demo_time;
-
-static double image_waiting_array[iteration];
-static double fetch_array[iteration];
-static double detect_array[iteration];
-static double display_array[iteration];
-static double slack[iteration];
-static double fps_array[iteration];
-static double latency[iteration];
-
-static int count=0;
-
-int process_number;
-float camera_fps=0;
-float *ptr_camera_fps=&camera_fps;
-long int frame_number[3];
-double frame_timestamp[3];
-static double detect_start;
-static double detect_end;
-static double detect_time;
-static double display_time;
-static double fetch_start;
-static double fetch_time;
-static double image_waiting_time;
-static int sleep_time;
+extern int display_index;
+extern int offset = 0;
 
 double gettimeafterboot()
 {
@@ -154,7 +127,7 @@ void *detect_in_thread(void *ptr)
 
 void *fetch_in_thread(void *ptr)
 {
-	usleep(sleep_time*1000);
+	usleep(offset*1000);
 	fetch_start=gettimeafterboot();
     free_image(buff[buff_index]);
 //    buff[buff_index] = get_image_from_stream(cap);
@@ -177,7 +150,7 @@ void *fetch_in_thread(void *ptr)
 void *display_in_thread(void *ptr)
 {
 	double display_start = gettimeafterboot();
-    int c = show_image(buff[(buff_index + 2)%3], "Demo", 1);
+    int c = show_image(buff[display_index], "Demo", 1);
     if (c != -1) c = c%256;
     if (c == 27) {
         demo_done = 1;
@@ -198,9 +171,8 @@ void *display_in_thread(void *ptr)
 	display_time=now_time-display_start;
 	if(count>=start_log){
 		fps_array[count-start_log]=fps;
-   		latency[count-start_log]=now_time-frame_timestamp[(buff_index+2)%3];
+   		latency[count-start_log]=now_time-frame_timestamp[display_index];
 		display_array[count-start_log]=display_time;
-//		printf("latency[%d]: %f\n",count-start_log,latency[count-start_log]);
 		printf("count : %d\n",count);
 	}
     return 0;
@@ -220,7 +192,7 @@ void *detect_loop(void *ptr)
     }
 }
 
-void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const char *filename, char **names, int classes, int delay, char *prefix, int avg_frames, float hier, int w, int h, int frames, int fullscreen, int opencv_buffer_size, int offset, int process_num)
+void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const char *filename, char **names, int classes, int delay, char *prefix, int avg_frames, float hier, int w, int h, int frames, int fullscreen)
 {
     //demo_frame = avg_frames;
     image **alphabet = load_alphabet();
@@ -249,7 +221,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
         printf("video file: %s\n", filename);
         cap = open_video_stream(filename, 0, 0, 0, 0);
     }else{
-        cap = open_video_stream_cam_fps(0, cam_index, w, h, frames, ptr_camera_fps, opencv_buffer_size);
+        cap = open_video_stream_cam_fps(0, cam_index, w, h, frames, ptr_camera_fps);
 		printf("camera fps : %f\n",camera_fps);
     }
 
@@ -262,36 +234,23 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
     buff_letter[1] = letterbox_image(buff[0], net->w, net->h);
     buff_letter[2] = letterbox_image(buff[0], net->w, net->h);
 
-
     if(!prefix){
         make_window("Demo", 1352, 1013, fullscreen);
     }
 
-    //demo_time = what_time_is_it_now();
 	demo_time=gettimeafterboot();
-	//sleep_time=160;
 	
-	double image_waiting_sum[cycle]={0};
-	double fetch_sum[cycle]={0};
-	double detect_sum[cycle]={0};
-	double display_sum[cycle]={0};
-	double slack_sum[cycle]={0};
-	double fps_sum[cycle]={0};
-	double latency_sum[cycle]={0};
-
-	sleep_time=offset;
-
 	for(int iter=0;iter<cycle;iter++){
 	    while(!demo_done){
 
 	        if(pthread_create(&fetch_thread, 0, fetch_in_thread, 0)) error("Thread creation failed");
-	        //if(pthread_create(&detect_thread, 0, detect_in_thread, 0)) error("Thread creation failed");
+	        if(pthread_create(&detect_thread, 0, detect_in_thread, 0)) error("Thread creation failed");
+
 	        if(!prefix){
 				fps=1./(gettimeafterboot()-demo_time)*1000;
 				demo_time=gettimeafterboot();
-				detect_in_thread(0);
+				display_index = (buff_index+1)%3;
 				display_in_thread(0);
-	
 	        }else{
 	            char name[256];
 	            sprintf(name, "%s_%08d", prefix, count);
@@ -299,19 +258,10 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
 	        }
 	        pthread_join(fetch_thread, 0);
 	        pthread_join(detect_thread, 0);
+
 			if(count>=start_log)
-				slack[count-start_log]=(detect_time+display_time)-(sleep_time+fetch_time);
-				//slack[count-start_log]=(detect_time)-(sleep_time+fetch_time);
+				slack[count-start_log]=(detect_time)-(offset+fetch_time);
 			if(count==(iteration+start_log-1)){
-				FILE *fp;
-				char s1[35]="auto_calib/offset_";
-				char s2[4];
-				sprintf(s2,"%d",process_num);
-				char s3[5]=".csv";
-				strcat(s1,s2);
-				strcat(s1,s3);
-				
-				fp=fopen(s1,"w+");
 				for(int i=0;i<iteration;i++){
 					image_waiting_sum[iter]+=image_waiting_array[i];
 					fetch_sum[iter]+=fetch_array[i];
@@ -320,13 +270,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
 					slack_sum[iter]+=slack[i];
 					fps_sum[iter]+=fps_array[i];
 					latency_sum[iter]+=latency[i];
-					fprintf(fp,"%f,%f,%f,%f,%f,%f,%f\n",image_waiting_array[i],fetch_array[i],detect_array[i],	display_array[i],slack[i],fps_array[i],latency[i]);
 				}
-				fclose(fp);
-				if(iter==0)
-				sleep_time=(int)detect_sum[0]/iteration-1000./(2*(int)(camera_fps));
-				else 
-					sleep_time=(int)detect_sum[1]/iteration-1000./(2*(int)(camera_fps));
 				break;
 			}
 			count++;
@@ -435,7 +379,7 @@ pthread_join(detect_thread, 0);
 }
 */
 #else
-void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const char *filename, char **names, int classes, int delay, char *prefix, int avg, float hier, int w, int h, int frames, int fullscreen)
+void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const char *filename, char **names, int classes, int delay, char *prefix, int avg_frames, float hier, int w, int h, int frames, int fullscreen)
 {
     fprintf(stderr, "Demo needs OpenCV for webcam images.\n");
 }
