@@ -792,9 +792,6 @@ void run_detector(int argc, char **argv)
     float thresh = find_float_arg(argc, argv, "-thresh", .5);
     float hier_thresh = find_float_arg(argc, argv, "-hier", .5);
     int cam_index = find_int_arg(argc, argv, "-c", 0);
-    int opencv_buffer_size = find_int_arg(argc, argv, "-buffer_size", 4);
-    int offset = find_int_arg(argc, argv, "-offset", 0);
-    int process_num = find_int_arg(argc, argv, "-process_num", 1);
     int frame_skip = find_int_arg(argc, argv, "-s", 0);
     int avg = find_int_arg(argc, argv, "-avg", 3);
     if(argc < 4){

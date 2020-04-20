@@ -25,15 +25,14 @@ extern int demo_index = 0;
 extern int demo_done = 0;
 extern int demo_total = 0;
 extern float camera_fps=0;
-extern float *ptr_camera_fps=&camera_fps;
 
-extern double image_waiting_sum[cycle]={0};
-extern double fetch_sum[cycle]={0};
-extern double detect_sum[cycle]={0};
-extern double display_sum[cycle]={0};
-extern double slack_sum[cycle]={0};
-extern double fps_sum[cycle]={0};
-extern double latency_sum[cycle]={0};
+extern double image_waiting_sum;
+extern double fetch_sum;
+extern double detect_sum;
+extern double display_sum;
+extern double slack_sum;
+extern double fps_sum;
+extern double latency_sum;
 
 extern int display_index;
 extern int offset = 0;
@@ -221,7 +220,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
         printf("video file: %s\n", filename);
         cap = open_video_stream(filename, 0, 0, 0, 0);
     }else{
-        cap = open_video_stream_cam_fps(0, cam_index, w, h, frames, ptr_camera_fps);
+        cap = open_video_stream_cam_fps(0, cam_index, w, h, frames, &camera_fps);
 		printf("camera fps : %f\n",camera_fps);
     }
 
@@ -240,53 +239,54 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
 
 	demo_time=gettimeafterboot();
 	
-	for(int iter=0;iter<cycle;iter++){
-	    while(!demo_done){
+	while(!demo_done){
 
-	        if(pthread_create(&fetch_thread, 0, fetch_in_thread, 0)) error("Thread creation failed");
-	        if(pthread_create(&detect_thread, 0, detect_in_thread, 0)) error("Thread creation failed");
+		if(pthread_create(&fetch_thread, 0, fetch_in_thread, 0)) error("Thread creation failed");
+		if(pthread_create(&detect_thread, 0, detect_in_thread, 0)) error("Thread creation failed");
 
-	        if(!prefix){
-				fps=1./(gettimeafterboot()-demo_time)*1000;
-				demo_time=gettimeafterboot();
-				display_index = (buff_index+1)%3;
-				display_in_thread(0);
-	        }else{
-	            char name[256];
-	            sprintf(name, "%s_%08d", prefix, count);
-	            save_image(buff[(buff_index + 2)%3], name);
-	        }
-	        pthread_join(fetch_thread, 0);
-	        pthread_join(detect_thread, 0);
+		if(!prefix){
+			fps=1./(gettimeafterboot()-demo_time)*1000;
+			demo_time=gettimeafterboot();
+			display_index = (buff_index+1)%3;
+			display_in_thread(0);
+		}else{
+			char name[256];
+			sprintf(name, "%s_%08d", prefix, count);
+			save_image(buff[(buff_index + 2)%3], name);
+		}
+		pthread_join(fetch_thread, 0);
+		pthread_join(detect_thread, 0);
 
-			if(count>=start_log)
-				slack[count-start_log]=(detect_time)-(offset+fetch_time);
-			if(count==(iteration+start_log-1)){
-				for(int i=0;i<iteration;i++){
-					image_waiting_sum[iter]+=image_waiting_array[i];
-					fetch_sum[iter]+=fetch_array[i];
-					detect_sum[iter]+=detect_array[i];
-					display_sum[iter]+=display_array[i];
-					slack_sum[iter]+=slack[i];
-					fps_sum[iter]+=fps_array[i];
-					latency_sum[iter]+=latency[i];
-				}
-				break;
+		if(count>=start_log){
+			slack[count-start_log]=(detect_time)-(offset+fetch_time);
+			printf("E2E_delay : %f\n",latency[count-start_log]);
+		}
+#ifdef measure
+		if(count==(iteration+start_log-1)){
+			for(int i=0;i<iteration;i++){
+				image_waiting_sum+=image_waiting_array[i];
+				fetch_sum+=fetch_array[i];
+				detect_sum+=detect_array[i];
+				display_sum+=display_array[i];
+				slack_sum+=slack[i];
+				fps_sum+=fps_array[i];
+				latency_sum+=latency[i];
 			}
-			count++;
-	    	buff_index = (buff_index + 1) %3;
-	    }
-		count=0;
+			break;
+		}
+		count++;
+#endif
+		buff_index = (buff_index + 1) %3;
 	}
-	for(i=0; i<cycle;i++){
-		printf("avg_image_waiting[%d] : %f\n",i,image_waiting_sum[i]/iteration);
-		printf("avg_fetch[%d] : %f\n",i,fetch_sum[i]/iteration);
-		printf("avg_detect[%d] : %f\n",i,detect_sum[i]/iteration);
-		printf("avg_display[%d] : %f\n",i,display_sum[i]/iteration);
-		printf("avg_slack[%d] : %f\n",i,slack_sum[i]/iteration);
-		printf("avg_fps[%d] : %f\n",i,fps_sum[i]/iteration);
-		printf("avg_latency[%d] : %f\n",i,latency_sum[i]/iteration);
-	}
+	count=0;
+
+	printf("avg_image_waiting[%d] : %f\n",i,image_waiting_sum/iteration);
+	printf("avg_fetch[%d] : %f\n",i,fetch_sum/iteration);
+	printf("avg_detect[%d] : %f\n",i,detect_sum/iteration);
+	printf("avg_display[%d] : %f\n",i,display_sum/iteration);
+	printf("avg_slack[%d] : %f\n",i,slack_sum/iteration);
+	printf("avg_fps[%d] : %f\n",i,fps_sum/iteration);
+	printf("avg_latency[%d] : %f\n",i,latency_sum/iteration);
 }
 
 /*

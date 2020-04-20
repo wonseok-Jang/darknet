@@ -74,7 +74,8 @@ void *open_video_stream(const char *f, int c, int w, int h, int fps)
     if(!cap->isOpened()) return 0;
     if(w) cap->set(CV_CAP_PROP_FRAME_WIDTH, w);
     if(h) cap->set(CV_CAP_PROP_FRAME_HEIGHT, w);
-    if(fps) cap->set(CV_CAP_PROP_FPS, w);
+    //if(fps) cap->set(CV_CAP_PROP_FPS, w);
+    if(fps) cap->get(CV_CAP_PROP_FPS);
     return (void *) cap;
 }
 
@@ -84,7 +85,6 @@ void *open_video_stream_cam_fps(const char *f, int c, int w, int h, int fps,floa
     if(f) cap = new VideoCapture(f);
     else cap = new VideoCapture(c);
     if(!cap->isOpened()) return 0;
-	printf("here\n");
     if(w) cap->set(CV_CAP_PROP_FRAME_WIDTH, w);
     if(h) cap->set(CV_CAP_PROP_FRAME_HEIGHT, w);
     if(fps) cap->set(CV_CAP_PROP_FPS, w);
@@ -92,7 +92,6 @@ void *open_video_stream_cam_fps(const char *f, int c, int w, int h, int fps,floa
 	printf("image_opencv.cpp fps : %f\n",*camera_fps);
     return (void *) cap;
 }
-
 
 image get_image_from_stream(void *p)
 {

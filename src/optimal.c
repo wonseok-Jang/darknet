@@ -30,7 +30,6 @@ void demo_optimal(char *cfgfile, char *weightfile, float thresh, int cam_index, 
 	printf("Demo\n");
 	net = load_network(cfgfile, weightfile, 0);
 	set_batch_network(net, 1);
-	pthread_t detect_thread;
 	pthread_t fetch_thread;
 
 	srand(2222222);
@@ -47,7 +46,7 @@ void demo_optimal(char *cfgfile, char *weightfile, float thresh, int cam_index, 
 		printf("video file: %s\n", filename);
 		cap = open_video_stream(filename, 0, 0, 0, 0);
 	}else{
-		cap = open_video_stream_cam_fps(0, cam_index, w, h, frames, ptr_camera_fps);
+        cap = open_video_stream_cam_fps(0, cam_index, w, h, frames, &camera_fps);
 		printf("camera fps : %f\n",camera_fps);
 	}
 
@@ -66,7 +65,6 @@ void demo_optimal(char *cfgfile, char *weightfile, float thresh, int cam_index, 
 
 	demo_time=gettimeafterboot();
 
-	for(int iter=0;iter<cycle;iter++){
 		while(!demo_done){
 
 			if(pthread_create(&fetch_thread, 0, fetch_in_thread, 0)) error("Thread creation failed");
@@ -99,31 +97,30 @@ void demo_optimal(char *cfgfile, char *weightfile, float thresh, int cam_index, 
 				printf("Offset : %d\n", offset);
 				printf("E2E_delay : %f\n",latency[count-start_log]);
 			}
+#ifdef measure
 			if(count==(iteration+start_log-1)){
 				for(int i=0;i<iteration;i++){
-					image_waiting_sum[iter]+=image_waiting_array[i];
-					fetch_sum[iter]+=fetch_array[i];
-					detect_sum[iter]+=detect_array[i];
-					display_sum[iter]+=display_array[i];
-					slack_sum[iter]+=slack[i];
-					fps_sum[iter]+=fps_array[i];
-					latency_sum[iter]+=latency[i];
+					image_waiting_sum+=image_waiting_array[i];
+					fetch_sum+=fetch_array[i];
+					detect_sum+=detect_array[i];
+					display_sum+=display_array[i];
+					slack_sum+=slack[i];
+					fps_sum+=fps_array[i];
+					latency_sum+=latency[i];
 				}
 				break;
 			}
 			count++;
+#endif
 			buff_index = (buff_index + 1) %3;
 		}
-		for(i=0; i<cycle;i++){
-			printf("avg_image_waiting[%d] : %f\n",i,image_waiting_sum[i]/iteration);
-			printf("avg_fetch[%d] : %f\n",i,fetch_sum[i]/iteration);
-			printf("avg_detect[%d] : %f\n",i,detect_sum[i]/iteration);
-			printf("avg_display[%d] : %f\n",i,display_sum[i]/iteration);
-			printf("avg_slack[%d] : %f\n",i,slack_sum[i]/iteration);
-			printf("avg_fps[%d] : %f\n",i,fps_sum[i]/iteration);
-			printf("avg_latency[%d] : %f\n",i,latency_sum[i]/iteration);
-		}
-	}
+		printf("avg_image_waiting[%d] : %f\n",i,image_waiting_sum/iteration);
+		printf("avg_fetch[%d] : %f\n",i,fetch_sum/iteration);
+		printf("avg_detect[%d] : %f\n",i,detect_sum/iteration);
+		printf("avg_display[%d] : %f\n",i,display_sum/iteration);
+		printf("avg_slack[%d] : %f\n",i,slack_sum/iteration);
+		printf("avg_fps[%d] : %f\n",i,fps_sum/iteration);
+		printf("avg_latency[%d] : %f\n",i,latency_sum/iteration);
 }
 
 #else

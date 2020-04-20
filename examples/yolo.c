@@ -309,9 +309,6 @@ void run_yolo(int argc, char **argv)
     char *prefix = find_char_arg(argc, argv, "-prefix", 0);
     float thresh = find_float_arg(argc, argv, "-thresh", .2);
     int cam_index = find_int_arg(argc, argv, "-c", 0);
-    int opencv_buffer_size = find_int_arg(argc, argv, "-buffer_size", 4);
-    int offset = find_int_arg(argc, argv, "-offset", 0);
-    int process_num = find_int_arg(argc, argv, "-process_num", 1);
     int frame_skip = find_int_arg(argc, argv, "-s", 0);
     if(argc < 4){
         fprintf(stderr, "usage: %s %s [train/test/valid] [cfg] [weights (optional)]\n", argv[0], argv[1]);

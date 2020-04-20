@@ -7,6 +7,8 @@
 #define start_log 25
 #define cycle 1
 
+#define measure
+
 double gettimeafterboot();
 detection *get_network_boxes(network *net, int w, int h, float thresh, float hier, int *map, int relative, int *num);
 int size_network(network *net);
@@ -48,11 +50,9 @@ double slack[iteration];
 double fps_array[iteration];
 double latency[iteration];
 
-int count;
+int count; //count for measurement
 
-int process_number;
 float camera_fps;
-float *ptr_camera_fps;
 long int frame_number[3];
 double frame_timestamp[3];
 double detect_start;
@@ -62,15 +62,16 @@ double display_time;
 double fetch_start;
 double fetch_time;
 double image_waiting_time;
-int offset;
 
-double image_waiting_sum[cycle];
-double fetch_sum[cycle];
-double detect_sum[cycle];
-double display_sum[cycle];
-double slack_sum[cycle];
-double fps_sum[cycle];
-double latency_sum[cycle];
+int offset; //optimal offset
+
+double image_waiting_sum;
+double fetch_sum;
+double detect_sum;
+double display_sum;
+double slack_sum;
+double fps_sum;
+double latency_sum;
 
 int display_index;
 
