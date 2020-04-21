@@ -15,7 +15,7 @@
 
 #ifdef OPENCV
 
-#define iteration 100
+#define iteration 1000
 #define start_log 25
 #define cycle 1
 
@@ -125,7 +125,7 @@ void *detect_in_thread(void *ptr)
     float nms = .4;
 
     layer l = net->layers[net->n-1];
-    float *X = buff_letter[(buff_index+2)%3].data;
+    float *X = buff_letter[(buff_index)%3].data;
     network_predict(net, X);
 
     remember_network(net);
@@ -139,7 +139,7 @@ void *detect_in_thread(void *ptr)
     printf("\033[1;1H");
     printf("\nFPS:%.1f\n",fps);
     printf("Objects:\n\n");
-    image display = buff[(buff_index+2) % 3];
+    image display = buff[(buff_index) % 3];
     draw_detections(display, dets, nboxes, demo_thresh, demo_names, demo_alphabet, demo_classes);
     free_detections(dets, nboxes);
 
@@ -176,7 +176,7 @@ void *fetch_in_thread(void *ptr)
 void *display_in_thread(void *ptr)
 {
 	double display_start = gettimeafterboot();
-    int c = show_image(buff[(buff_index + 1)%3], "Demo", 1);
+    int c = show_image(buff[(buff_index)%3], "Demo", 1);
     if (c != -1) c = c%256;
     if (c == 27) {
         demo_done = 1;
@@ -194,10 +194,10 @@ void *display_in_thread(void *ptr)
     }
 
 	double now_time=gettimeafterboot();
-	display_time=now_time-detect_start;
+	display_time=now_time-display_start;
 	if(count>=start_log){
 		fps_array[count-start_log]=fps;
-   		latency[count-start_log]=now_time-frame_timestamp[(buff_index+1)%3];
+   		latency[count-start_log]=now_time-frame_timestamp[(buff_index)%3];
 		display_array[count-start_log]=display_time;
 //		printf("latency[%d]: %f\n",count-start_log,latency[count-start_log]);
 		printf("count : %d\n",count);
@@ -284,12 +284,13 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
 	    while(!demo_done){
 	    	buff_index = (buff_index + 1) %3;
 
-	        if(pthread_create(&fetch_thread, 0, fetch_in_thread, 0)) error("Thread creation failed");
-	        if(pthread_create(&detect_thread, 0, detect_in_thread, 0)) error("Thread creation failed");
+//	        if(pthread_create(&fetch_thread, 0, fetch_in_thread, 0)) error("Thread creation failed");
+//	        if(pthread_create(&detect_thread, 0, detect_in_thread, 0)) error("Thread creation failed");
 	        if(!prefix){
 				fps=1./(gettimeafterboot()-demo_time)*1000;
 				demo_time=gettimeafterboot();
-				//detect_in_thread(0);
+				fetch_in_thread(0);
+				detect_in_thread(0);
 				display_in_thread(0);
 	
 	        }else{
@@ -297,8 +298,8 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
 	            sprintf(name, "%s_%08d", prefix, count);
 	            save_image(buff[(buff_index + 2)%3], name);
 	        }
-	        pthread_join(fetch_thread, 0);
-	        pthread_join(detect_thread, 0);
+//	        pthread_join(fetch_thread, 0);
+//	        pthread_join(detect_thread, 0);
 			if(count>=start_log)
 				//slack[count-start_log]=(detect_time+display_time)-(sleep_time+fetch_time);
 				slack[count-start_log]=(detect_time)-(sleep_time+fetch_time);

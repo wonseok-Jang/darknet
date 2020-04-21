@@ -82,7 +82,8 @@ void *open_video_stream_cam_fps(const char *f, int c, int w, int h, int fps,floa
 {
     VideoCapture *cap;
     if(f) cap = new VideoCapture(f);
-    else cap = new VideoCapture(c, 1,opencv_buffer_size);
+    //else cap = new VideoCapture(c, 1,opencv_buffer_size);
+    else cap = new VideoCapture(c);
     if(!cap->isOpened()) return 0;
     if(w) cap->set(CV_CAP_PROP_FRAME_WIDTH, w);
     if(h) cap->set(CV_CAP_PROP_FRAME_HEIGHT, w);
